@@ -129,15 +129,33 @@
                 max-width: 600px; 
                 margin-left: 0;  
                 margin-right: 0;
-                margin-bottom: px;
+                margin-bottom: 300px;
             }
+            /* Desktop Positioning */
+            .image:nth-of-type(1) .thumbnail { left: 0px; bottom: -150px; }
+            .image:nth-of-type(2) .thumbnail { left: 120px; bottom: -150px; }
+            .image:nth-of-type(3) .thumbnail { left: 240px; bottom: -150px; }
+            .image:nth-of-type(4) .thumbnail { left: 360px; bottom: -150px; }
+            .image:nth-of-type(5) .thumbnail { left: 480px; bottom: -150px; }
+            .image:nth-of-type(6) .thumbnail { left: 0px; bottom: -250px; }
+            .image:nth-of-type(7) .thumbnail { left: 120px; bottom: -250px; }
+            .image:nth-of-type(8) .thumbnail { left: 240px; bottom: -250px; }
 
         }
         
         @media (max-width: 500px) {
-            .images { margin-bottom: 200px; }
+            .images { margin-bottom: 350px; }
 
-200
+            /* Mobile Positioning */
+            .image:nth-of-type(1) .thumbnail { left: 0px; bottom: -150px; }
+            .image:nth-of-type(2) .thumbnail { left: 90px; bottom: -150px; }
+            .image:nth-of-type(3) .thumbnail { left: 180px; bottom: -150px; }
+            .image:nth-of-type(4) .thumbnail { left: 270px; bottom: -150px; }
+            .image:nth-of-type(5) .thumbnail { left: 0px; bottom: -240px; }
+            .image:nth-of-type(6) .thumbnail { left: 90px; bottom: -240px; }
+            .image:nth-of-type(7) .thumbnail { left: 180px; bottom: -240px; }
+            .image:nth-of-type(8) .thumbnail { left: 270px; bottom: -240px; }
+
         }
         
         /* =========================================================
@@ -262,7 +280,103 @@
                         <div class="col-xs-12 col-md-8">
                             <div class="images">
                                 <!-- Sentinel -->
-                                
+                                <img src="https://media.4rgos.it/i/Argos/5795743_R_Z001A?w=750&h=440&qlt=70" alt="" class="main-sentinel" />
+
+                                <!-- IMAGE 1 -->
+                                <div class="image">
+                                    <input id="thumbnail-control-1" type="radio" name="thumbnails" class="thumbnails-control" checked />
+                                    <label for="thumbnail-control-1" id="thumbnail-1" class="thumbnail">
+                                        <img src="https://media.4rgos.it/i/Argos/5795743_R_Z001A?w=750&h=440&qlt=70" alt="Thumb 1" />
+                                    </label>
+                                    <input id="image-control-1" type="checkbox" class="main-control">
+                                    <label for="image-control-1" id="image-1" class="main transition">
+                                        <img src="https://media.4rgos.it/i/Argos/5795743_R_Z001A?w=750&h=440&qlt=70" alt="Main Image 1" />
+                                    </label>
+                                </div>
+
+                                <!-- IMAGE 2 -->
+                                <div class="image">
+                                    <input id="thumbnail-control-2" type="radio" name="thumbnails" class="thumbnails-control" />
+                                    <label for="thumbnail-control-2" id="thumbnail-2" class="thumbnail">
+                                        <img src="https://media.4rgos.it/i/Argos/5795743_R_Z002A?w=750&h=440&qlt=70" alt="Thumb 2" />
+                                    </label>
+                                    <input id="image-control-2" type="checkbox" class="main-control">
+                                    <label for="image-control-2" id="image-2" class="main transition">
+                                        <img src="https://media.4rgos.it/i/Argos/5795743_R_Z002A?w=750&h=440&qlt=70" alt="Main Image 2" />
+                                    </label>
+                                </div>
+
+                                <!-- IMAGE 3 -->
+                                <div class="image">
+                                    <input id="thumbnail-control-3" type="radio" name="thumbnails" class="thumbnails-control" />
+                                    <label for="thumbnail-control-3" id="thumbnail-3" class="thumbnail">
+                                        <img src="https://media.4rgos.it/i/Argos/5795743_R_Z003A?w=750&h=440&qlt=70" alt="Thumb 3" />
+                                    </label>
+                                    <input id="image-control-3" type="checkbox" class="main-control">
+                                    <label for="image-control-3" id="image-3" class="main transition">
+                                        <img src="https://media.4rgos.it/i/Argos/5795743_R_Z003A?w=750&h=440&qlt=70" alt="Main Image 3" />
+                                    </label>
+                                </div>
+
+                                <!-- IMAGE 4 -->
+                                <div class="image">
+                                    <input id="thumbnail-control-4" type="radio" name="thumbnails" class="thumbnails-control" />
+                                    <label for="thumbnail-control-4" id="thumbnail-4" class="thumbnail">
+                                        <img src="https://media.4rgos.it/i/Argos/5795743_R_Z004A?w=750&h=440&qlt=70" alt="Thumb 4" />
+                                    </label>
+                                    <input id="image-control-4" type="checkbox" class="main-control">
+                                    <label for="image-control-4" id="image-4" class="main transition">
+                                        <img src="https://media.4rgos.it/i/Argos/5795743_R_Z004A?w=750&h=440&qlt=70" alt="Main Image 4" />
+                                    </label>
+                                </div>
+
+                                <!-- IMAGE 5 -->
+                                <div class="image">
+                                    <input id="thumbnail-control-5" type="radio" name="thumbnails" class="thumbnails-control" />
+                                    <label for="thumbnail-control-5" id="thumbnail-5" class="thumbnail">
+                                        <img src="https://media.4rgos.it/i/Argos/5795743_R_Z005A?w=750&h=440&qlt=70" alt="Thumb 5" />
+                                    </label>
+                                    <input id="image-control-5" type="checkbox" class="main-control">
+                                    <label for="image-control-5" id="image-5" class="main transition">
+                                        <img src="https://media.4rgos.it/i/Argos/5795743_R_Z005A?w=750&h=440&qlt=70" alt="Main Image 5" />
+                                    </label>
+                                </div>
+
+                                <!-- IMAGE 6 -->
+                                <div class="image">
+                                    <input id="thumbnail-control-6" type="radio" name="thumbnails" class="thumbnails-control" />
+                                    <label for="thumbnail-control-6" id="thumbnail-6" class="thumbnail">
+                                        <img src="https://media.4rgos.it/i/Argos/5795743_R_Z006A?w=750&h=440&qlt=70" alt="Thumb 6" />
+                                    </label>
+                                    <input id="image-control-6" type="checkbox" class="main-control">
+                                    <label for="image-control-6" id="image-6" class="main transition">
+                                        <img src="https://media.4rgos.it/i/Argos/5795743_R_Z006A?w=750&h=440&qlt=70" alt="Main Image 6" />
+                                    </label>
+                                </div>
+
+                                <!-- IMAGE 7 -->
+                                <div class="image">
+                                    <input id="thumbnail-control-7" type="radio" name="thumbnails" class="thumbnails-control" />
+                                    <label for="thumbnail-control-7" id="thumbnail-7" class="thumbnail">
+                                        <img src="https://media.4rgos.it/i/Argos/5795743_R_Z007A?w=750&h=440&qlt=70" alt="Thumb 7" />
+                                    </label>
+                                    <input id="image-control-7" type="checkbox" class="main-control">
+                                    <label for="image-control-7" id="image-7" class="main transition">
+                                        <img src="https://media.4rgos.it/i/Argos/5795743_R_Z007A?w=750&h=440&qlt=70" alt="Main Image 7" />
+                                    </label>
+                                </div>
+
+                                <!-- IMAGE 8 -->
+                                <div class="image">
+                                    <input id="thumbnail-control-8" type="radio" name="thumbnails" class="thumbnails-control" />
+                                    <label for="thumbnail-control-8" id="thumbnail-8" class="thumbnail">
+                                        <img src="https://media.4rgos.it/i/Argos/5795743_R_Z008A?w=750&h=440&qlt=70" alt="Thumb 8" />
+                                    </label>
+                                    <input id="image-control-8" type="checkbox" class="main-control">
+                                    <label for="image-control-8" id="image-8" class="main transition">
+                                        <img src="https://media.4rgos.it/i/Argos/5795743_R_Z008A?w=750&h=440&qlt=70" alt="Main Image 8" />
+                                    </label>
+                                </div>
 
                             </div>
                         </div>
