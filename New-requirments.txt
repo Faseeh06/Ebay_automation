@@ -1,0 +1,20 @@
+An automated eBay HTML listing generator that works like this:
+
+Input: The user pastes Argos.co.uk and 1 more website product URLs into a spreadsheet (product-urls.xlsx)
+Process: They save the spreadsheet and run EbayListingGenerator.exe
+Output: The tool generates HTML files for each product URL, ready for eBay listings
+
+What the scraper needs to extract from each Argos product page:
+
+Product title (e.g. "Argos Home Seville 5 Drawer Chest – Anthracite")
+Product image URLs
+Product description
+
+The generated HTML should match a pre-existing template the client already has (from a previously provided sample).
+Project constraints:
+
+Deadline: 6am, February 13th
+Budget: $50 AUD
+If 5 URLs are entered → 5 HTML files are produced
+
+Essentially, it's a bulk eBay listing creator that scrapes Argos product data and 1 more website and injects it into a fixed HTML template automatically.

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+<title>Compact Knitted Mini Skirt Co-ord - Burgundy - Red</title>
+
+    <style>
+        /* =========================================================
+           1. RESET & FONTS
+           ========================================================= */
+        html, body { margin: 0; padding: 0; font-family: "Trebuchet MS", "Lucida Grande", sans-serif; background: #fff; color: #333; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+        * { box-sizing: border-box; }
+        img { max-width: 100%; height: auto; display: block; }
+        a { color: #333; text-decoration: none; transition: all 0.2s ease; }
+        
+        /* BRAND COLOR HOVER */
+        a:hover { color: #be6d45; }
+
+        p { margin: 0 0 15px; }
+        ul { list-style: none; padding: 0; margin: 0; }
+        
+        /* HEADINGS - BRAND COLOR */
+        h1, h2, h3 { font-weight: 700; color: #be6d45; margin-top: 0; margin-bottom: 15px; } 
+
+        /* =========================================================
+           2. LAYOUT GRID
+           ========================================================= */
+        .container { padding-right: 15px; padding-left: 15px; margin-right: auto; margin-left: auto; max-width: 1200px; }
+        .row { margin-right: -15px; margin-left: -15px; display: flex; flex-wrap: wrap; }
+        .col-xs-12, .col-md-8, .col-md-4, .col-lg-8, .col-lg-6 { position: relative; width: 100%; padding-right: 15px; padding-left: 15px; }
+        .section { padding: 20px 0; }
+        .clearfix::after { content: ""; display: table; clear: both; }
+
+        @media (min-width: 768px) {
+            .col-md-8 { flex: 0 0 66.66667%; max-width: 66.66667%; }
+            .col-md-4 { 
+                flex: 0 0 33.33333%; 
+                max-width: 33.33333%; 
+                padding-right: 15px; 
+            }
+            .hidden-md-down { display: block !important; }
+            .hidden-lg-up { display: none !important; }
+        }
+        @media (max-width: 767px) {
+            .hidden-md-down { display: none !important; }
+            .col-md-4 { padding-right: 15px; }
+        }
+
+        /* =========================================================
+           3. HEADER
+           ========================================================= */
+        #header {
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .logo-box {
+            display: flex; 
+            align-items: center; 
+            justify-content: flex-start; 
+            padding-left: 20px; 
+        }
+        
+        .logo-box img {
+            height: 60px;
+            width: auto;
+        }
+        
+        /* =========================================================
+           4. PRODUCT TITLE
+           ========================================================= */
+        .title { 
+            font-size: 28px; 
+            line-height: 1.3; 
+            font-weight: 400; 
+            color: #333; 
+            margin-bottom: 25px; 
+            text-transform: uppercase; 
+            margin-top: 10px; 
+            padding-left: 15px; 
+        }
+
+        /* =========================================================
+           5. GALLERY
+           ========================================================= */
+        .images { 
+            position: relative; 
+            margin-bottom: 200px; 
+            max-width: 450px; 
+            margin-left: auto; margin-right: auto; 
+        } 
+        
+        .main-sentinel { width: 100%; visibility: hidden; } 
+        
+        .image { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .thumbnails-control, .main-control { display: none; }
+
+        .thumbnail { 
+            position: absolute; 
+            bottom: -150px; 
+            width: 80px; height: 80px; border-radius: 50%; 
+            background: #fff; cursor: pointer; border: 2px solid #eee;
+            overflow: hidden; z-index: 5;
+            display: flex; align-items: center; justify-content: center;
+        }
+        
+        .thumbnail img { 
+            width: 100%; height: 100%; 
+            object-fit: contain; 
+            padding: 5px; 
+            border-radius: 50%;
+        }
+        
+        .thumbnail:hover { border-color: #be6d45; }
+        .thumbnails-control:checked + .thumbnail { border-color: #be6d45; opacity: 1; }
+
+        .main { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #fff; opacity: 0; z-index: 1; transition: opacity 0.3s; 
+            display: flex; align-items: center; justify-content: center;
+        }
+        .main img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .thumbnails-control:checked ~ .main { opacity: 1; z-index: 2; }
+
+        @media (min-width: 768px) {
+            .images {
+                max-width: 600px; 
+                margin-left: 0;  
+                margin-right: 0;
+                margin-bottom: 300px;
+            }
+            /* Desktop Positioning */
+            .image:nth-of-type(1) .thumbnail { left: 0px; bottom: -150px; }
+            .image:nth-of-type(2) .thumbnail { left: 120px; bottom: -150px; }
+            .image:nth-of-type(3) .thumbnail { left: 240px; bottom: -150px; }
+            .image:nth-of-type(4) .thumbnail { left: 360px; bottom: -150px; }
+            .image:nth-of-type(5) .thumbnail { left: 480px; bottom: -150px; }
+            .image:nth-of-type(6) .thumbnail { left: 0px; bottom: -250px; }
+
+        }
+        
+        @media (max-width: 500px) {
+            .images { margin-bottom: 350px; }
+
+            /* Mobile Positioning */
+            .image:nth-of-type(1) .thumbnail { left: 0px; bottom: -150px; }
+            .image:nth-of-type(2) .thumbnail { left: 90px; bottom: -150px; }
+            .image:nth-of-type(3) .thumbnail { left: 180px; bottom: -150px; }
+            .image:nth-of-type(4) .thumbnail { left: 270px; bottom: -150px; }
+            .image:nth-of-type(5) .thumbnail { left: 0px; bottom: -240px; }
+            .image:nth-of-type(6) .thumbnail { left: 90px; bottom: -240px; }
+
+        }
+        
+        /* =========================================================
+           6. RIGHT SIDEBAR
+           ========================================================= */
+        .condition { border: 2px solid #ddd; padding: 20px; margin-bottom: 25px; background: #fff; margin-top: 20px; }
+        .condition h2 { font-size: 18px; margin-bottom: 15px; color: #333; font-weight: 600; }
+        .condition ul li { font-size: 14px; margin-bottom: 10px; padding-left: 20px; position: relative; color: #555; }
+        .condition ul li::before { content: "•"; position: absolute; left: 0; color: #333; font-weight: bold; }
+        .condition ul li strong { color: #333; }
+
+        .buttons .btn {
+            display: block; 
+            width: 100%; 
+            padding: 16px 0; 
+            text-align: center;
+            border: 2px solid #be6d45; 
+            color: #be6d45; 
+            border-radius: 50px; 
+            font-weight: bold; 
+            margin-bottom: 15px; 
+            background: #fff; 
+            font-size: 16px; 
+        }
+        .buttons .btn:hover { background: #be6d45; color: #fff; }
+
+        /* =========================================================
+           7. ACCORDION SECTIONS
+           ========================================================= */
+        .accordion-area { 
+            margin-top: 40px; 
+            max-width: 100%; 
+            margin-left: auto; 
+            margin-right: auto;
+        }
+
+        .accordion-box {
+            background: #ffffff;
+            border: 1px solid #d3d3d3;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .accordion-box summary {
+            padding: 18px 25px;
+            cursor: pointer;
+            list-style: none;
+            font-size: 16px;
+            font-weight: 400;
+            color: #333;
+            background: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .accordion-box summary::-webkit-details-marker { display: none; }
+        .accordion-box summary:hover { background-color: #fafafa; color: #be6d45; } 
+        .accordion-box summary .toggle-icon { width: 20px; height: 20px; transition: transform 0.3s ease; stroke: #333; }
+        .accordion-box details[open] summary .toggle-icon { transform: rotate(180deg); stroke: #be6d45; }
+        .accordion-box details[open] summary { border-bottom: 1px solid #eee; color: #be6d45; font-weight: bold; }
+        .accordion-content { padding: 25px; font-size: 14px; color: #333; line-height: 1.6; }
+        
+        .delivery-section { display: flex; justify-content: space-between; align-items: flex-start; }
+        .delivery-info { flex: 1; }
+        .delivery-subtitle { color: #be6d45; font-weight: 600; font-size: 14px; margin-bottom: 15px; } 
+        .delivery-item { margin-bottom: 12px; font-size: 14px; color: #333; line-height: 1.5; }
+        .delivery-label { font-weight: 600; }
+        .delivery-icons { display: flex; gap: 15px; align-items: center; margin-left: 20px; }
+        .delivery-icon { width: 70px; height: 70px; fill: #999; }
+
+        @media (max-width: 600px) {
+            .delivery-section { flex-direction: column; }
+            .delivery-icons { margin-left: 0; margin-top: 20px; width: 100%; justify-content: flex-start; }
+            .delivery-icon { width: 50px; height: 50px; }
+        }
+
+        /* =========================================================
+           8. FOOTER
+           ========================================================= */
+        #footer { background-color: #ececec; padding: 40px 20px;  margin-top: 50px; }
+        #footer h3 { font-size: 16px; font-weight: 600; color: #333; margin: 0 0 20px 0; }
+        #footer a { color: #333; text-decoration: none; font-size: 14px; font-weight: 400; }
+        #footer a:hover { color: #be6d45; text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+<div id="page">
+
+    <!-- HEADER SECTION -->
+    <header id="header" class="section">
+        <div class="container">
+            <div class="row">
+                <div class="col-xs-12 col-lg-6">
+                    <a target="_blank" href="#" title="Cheap Furniture Warehouse" class="logo">
+                        <div class="logo-box">
+                            <img src="https://cheapfurniturewarehouse.co.uk/cdn/shop/files/1_9c3d228e-0210-4146-87c7-547a89a6ce5b.png?v=1727802997" alt="Cheap Furniture Warehouse" />
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN PRODUCT SECTION -->
+    <div id="main">
+        <section class="container">
+            <div class="row">
+                <div class="col-xs-12">
+                    
+                    <!-- PRODUCT TITLE -->
+                    <div class="row">
+                        <div class="col-xs-12">
+                            <h1 class="title">Compact Knitted Mini Skirt Co-ord - Burgundy - Red </h1>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- IMAGE GALLERY -->
+                        <div class="col-xs-12 col-md-8">
+                            <div class="images">
+                                <!-- Sentinel -->
+                                <img src="https://media.very.co.uk/i/very/WOCB2_SQ1_0000000017_RED_MDf?$pdp_300x400_x2$&fmt=jpg" alt="" class="main-sentinel" />
+
+                                <!-- IMAGE 1 -->
+                                <div class="image">
+                                    <input id="thumbnail-control-1" type="radio" name="thumbnails" class="thumbnails-control" checked />
+                                    <label for="thumbnail-control-1" id="thumbnail-1" class="thumbnail">
+                                        <img src="https://media.very.co.uk/i/very/WOCB2_SQ1_0000000017_RED_MDf?$pdp_300x400_x2$&fmt=jpg" alt="Thumb 1" />
+                                    </label>
+                                    <input id="image-control-1" type="checkbox" class="main-control">
+                                    <label for="image-control-1" id="image-1" class="main transition">
+                                        <img src="https://media.very.co.uk/i/very/WOCB2_SQ1_0000000017_RED_MDf?$pdp_300x400_x2$&fmt=jpg" alt="Main Image 1" />
+                                    </label>
+                                </div>
+
+                                <!-- IMAGE 2 -->
+                                <div class="image">
+                                    <input id="thumbnail-control-2" type="radio" name="thumbnails" class="thumbnails-control" />
+                                    <label for="thumbnail-control-2" id="thumbnail-2" class="thumbnail">
+                                        <img src="https://media.very.co.uk/i/very/WOCB2_SQ2_0000000017_RED_MDb?$pdp_300x400_x2$&fmt=jpg" alt="Thumb 2" />
+                                    </label>
+                                    <input id="image-control-2" type="checkbox" class="main-control">
+                                    <label for="image-control-2" id="image-2" class="main transition">
+                                        <img src="https://media.very.co.uk/i/very/WOCB2_SQ2_0000000017_RED_MDb?$pdp_300x400_x2$&fmt=jpg" alt="Main Image 2" />
+                                    </label>
+                                </div>
+
+                                <!-- IMAGE 3 -->
+                                <div class="image">
+                                    <input id="thumbnail-control-3" type="radio" name="thumbnails" class="thumbnails-control" />
+                                    <label for="thumbnail-control-3" id="thumbnail-3" class="thumbnail">
+                                        <img src="https://media.very.co.uk/i/very/WOCB2_SQ3_0000000017_RED_MDo?$pdp_300x400_x2$&fmt=jpg" alt="Thumb 3" />
+                                    </label>
+                                    <input id="image-control-3" type="checkbox" class="main-control">
+                                    <label for="image-control-3" id="image-3" class="main transition">
+                                        <img src="https://media.very.co.uk/i/very/WOCB2_SQ3_0000000017_RED_MDo?$pdp_300x400_x2$&fmt=jpg" alt="Main Image 3" />
+                                    </label>
+                                </div>
+
+                                <!-- IMAGE 4 -->
+                                <div class="image">
+                                    <input id="thumbnail-control-4" type="radio" name="thumbnails" class="thumbnails-control" />
+                                    <label for="thumbnail-control-4" id="thumbnail-4" class="thumbnail">
+                                        <img src="https://media.very.co.uk/i/very/WOCB2_SQ4_0000000017_RED_MDd?$pdp_300x400_x2$&fmt=jpg" alt="Thumb 4" />
+                                    </label>
+                                    <input id="image-control-4" type="checkbox" class="main-control">
+                                    <label for="image-control-4" id="image-4" class="main transition">
+                                        <img src="https://media.very.co.uk/i/very/WOCB2_SQ4_0000000017_RED_MDd?$pdp_300x400_x2$&fmt=jpg" alt="Main Image 4" />
+                                    </label>
+                                </div>
+
+                                <!-- IMAGE 5 -->
+                                <div class="image">
+                                    <input id="thumbnail-control-5" type="radio" name="thumbnails" class="thumbnails-control" />
+                                    <label for="thumbnail-control-5" id="thumbnail-5" class="thumbnail">
+                                        <img src="https://media.very.co.uk/i/very/WOCB2_SQ5_0000000017_RED_MDd1?$pdp_300x400_x2$&fmt=jpg" alt="Thumb 5" />
+                                    </label>
+                                    <input id="image-control-5" type="checkbox" class="main-control">
+                                    <label for="image-control-5" id="image-5" class="main transition">
+                                        <img src="https://media.very.co.uk/i/very/WOCB2_SQ5_0000000017_RED_MDd1?$pdp_300x400_x2$&fmt=jpg" alt="Main Image 5" />
+                                    </label>
+                                </div>
+
+                                <!-- IMAGE 6 -->
+                                <div class="image">
+                                    <input id="thumbnail-control-6" type="radio" name="thumbnails" class="thumbnails-control" />
+                                    <label for="thumbnail-control-6" id="thumbnail-6" class="thumbnail">
+                                        <img src="https://media.very.co.uk/i/very/WOCB2_SQ6_0000000017_RED_MDd2?$pdp_300x400_x2$&fmt=jpg" alt="Thumb 6" />
+                                    </label>
+                                    <input id="image-control-6" type="checkbox" class="main-control">
+                                    <label for="image-control-6" id="image-6" class="main transition">
+                                        <img src="https://media.very.co.uk/i/very/WOCB2_SQ6_0000000017_RED_MDd2?$pdp_300x400_x2$&fmt=jpg" alt="Main Image 6" />
+                                    </label>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- RIGHT SIDEBAR -->
+                        <div class="col-xs-12 col-md-4">
+                            <div class="condition">
+                                <h2>Item Condition: New Other (Open Box)</h2>
+                                <ul>
+                                    <li><strong>Condition Details:</strong> Packaging may have cosmetic damage (e.g., scuffs, tears) or be non-original.</li>
+                                    <li><strong>Item Status:</strong> The product itself is brand new, unused, and in pristine condition.</li>
+                                    <li><strong>Quality Check:</strong> Professionally inspected and verified by our warehouse team.</li>
+                                    <li><strong>Contents:</strong> 100% fully functional with all original fittings and fixtures included.</li>
+                                    <li><strong>Warranty:</strong> Includes a full 12-Month Warranty for your peace of mind.</li>
+                                    
+                                </ul>
+                            </div>
+                            <div class="buttons clearfix">
+                                <a class="btn" href="#" onclick="window.parent.postMessage({action: 'CONTACT_SELLER'}, '*'); return false;">Contact</a> 
+                                <a target="_blank" class="btn" href="https://www.ebay.co.uk/str/cfurniturewarehousebradford">Visit our eBay shop</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ACCORDION SECTION -->
+                    <div class="accordion-area">
+                        <!-- Description Box -->
+                        <div class="accordion-box">
+                            <details open>
+                                <summary>
+                                    <span style="font-size: 16px;">Description</span>
+                                    <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </summary>
+                                <div class="accordion-content">
+                                    <div class="product-description-content-text"><p>Product description</p><p>Item number: WOCB2</p><p>The Very Collection Compact Knitted Fit & Flare Mini Skirt Co-ord - Burgundy</p><p>Size & Fit</p><p>True to size - order your usual size</p><p>Regular fit</p><p>Available in sizes S - L (S:8-10, M:12-14, L:16-18) </p><p></p><p>Details</p><p>Compact Knitted Fit & Flare Mini Skirt Coord - Burgundy by The Very Collection</p><p>Red</p><p>A line fit & flare skirt</p><p>Knitted </p><p>Pull on</p><p>Elasticated waist</p><p>Matching cardigan available separately, search WOCAW</p><p></p><p>Material & Care</p><p>Material Content: 38% Viscose, 36% Polyamide, 26% Polyester</p><p>Washing Instructions: Machine Washable</p><p></p><p>About the brand: </p><p></p><p>The Very Collection is full of trending updates, seasonal staples, and affordable basics, designed to be your fail-safe fashion formula for looking good all year round. With a focus on premium fabrics, it’s carefully curated to bring you the best of what’s new right now, with considered and exclusive designs for women, men, and the kids too.</p></div>
+                                </div>
+                            </details>
+                        </div>
+                        <!-- Delivery Box -->
+                        <div class="accordion-box">
+                            <details>
+                                <summary>
+                                    <span style="font-size: 16px;">Delivery</span>
+                                    <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </summary>
+                                <div class="accordion-content">
+                                    <div class="delivery-section">
+                                        <div class="delivery-info">
+                                            <div class="delivery-subtitle">Delivery Information</div>
+                                            <div class="delivery-item"><span class="delivery-label">Despatch:</span> Orders placed Mon-Fri before 9 AM are typically dispatched same day. Weekend orders dispatched next working day.</div>
+                                            <div class="delivery-item"><span class="delivery-label">Standard Delivery:</span> 48-Hour Tracked Service (Free for items under 25kg).</div>
+                                            <div class="delivery-item"><span class="delivery-label">Bulk Items:</span> Shipped within 3 working days, delivered within 5.</div>
+                                            <div class="delivery-item">We deliver within the UK only. Please check our shipping policy for exclusion zones.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                        <!-- Returns Box -->
+                        <div class="accordion-box">
+                            <details>
+                                <summary>
+                                    <span style="font-size: 16px;">Returns</span>
+                                    <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </summary>
+                                <div class="accordion-content">
+                                    <p>We offer <strong>14-Day Hassle-Free Returns</strong>.</p>
+                                    <ul>
+                                        <li><strong>Returns Period:</strong> 14 Days from purchase.</li>
+                                        <li><strong>Condition:</strong> Items must be returned in original packaging.</li>
+                                        <li><strong>Faulty Items:</strong> If your item arrives damaged or faulty, please contact us immediately for a replacement or refund.</li>
+                                    </ul>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+</body>
+</html>
