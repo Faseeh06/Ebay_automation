@@ -22,10 +22,31 @@ from selenium.webdriver.chrome.service import Service
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
 
-BASE_DIR = Path(__file__).resolve().parent
+# Handle PyInstaller bundle (when running as .exe)
+if getattr(sys, 'frozen', False):
+    # Running as compiled executable
+    # PyInstaller sets _MEIPASS to the temp folder where data files are extracted
+    if hasattr(sys, '_MEIPASS'):
+        # Data files are in the temp folder, but user files should be next to .exe
+        BASE_DIR = Path(sys.executable).parent
+        # Template might be in temp folder or next to exe - try both
+        TEMPLATE_PATH_TEMP = Path(sys._MEIPASS) / "product-template.json"
+        TEMPLATE_PATH = BASE_DIR / "product-template.json"
+        # Use temp folder template if it exists, otherwise use exe folder
+        if TEMPLATE_PATH_TEMP.exists():
+            TEMPLATE_PATH = TEMPLATE_PATH_TEMP
+    else:
+        BASE_DIR = Path(sys.executable).parent
+        TEMPLATE_PATH = BASE_DIR / "product-template.json"
+else:
+    # Running as script
+    BASE_DIR = Path(__file__).resolve().parent
+    TEMPLATE_PATH = BASE_DIR / "product-template.json"
+
+# User files are always in the executable's directory (or script's directory)
 URL_CSV_PATH = BASE_DIR / "url.csv"
-TEMPLATE_PATH = BASE_DIR / "product-template.json"
 OUTPUT_DIR = BASE_DIR / "products"
+OUTPUT_HTML_DIR = BASE_DIR / "html"
 
 # ─── DRIVER SETUP ─────────────────────────────────────────────────────────────
 
@@ -43,6 +64,14 @@ def get_driver(headless=True):
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
+    # Additional stability options
+    options.add_argument("--disable-gpu")
+    options.add_argument("--disable-software-rasterizer")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--disable-logging")
+    options.add_argument("--log-level=3")  # Suppress Chrome logs
+    options.add_experimental_option('useAutomationExtension', False)
+    options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
     # Try webdriver-manager first, fall back to system chromedriver
     try:
@@ -322,17 +351,18 @@ def scrape_argos_product(driver, url: str) -> Dict[str, Any]:
 # ─── VERY.CO.UK SCRAPER ───────────────────────────────────────────────────────
 
 def scrape_very_product(driver, url: str) -> Dict[str, Any]:
-    """Scrape product data from Very.co.uk"""
+    """Scrape product data from Very.co.uk (logic aligned with argos_cluade.py)"""
     print(f"\n🔍 Scraping Very.co.uk: {url}")
-    wait = WebDriverWait(driver, 20)
+    wait = WebDriverWait(driver, 25)
     data = {"url": url}
+    result = {"url": url, "title": "", "image_urls": [], "description_html": ""}
 
     try:
         driver.get(url)
 
-        # Wait for the main product container to appear
+        # Wait for the main product container (same as argos_cluade.py)
         wait.until(EC.presence_of_element_located((By.ID, "product-detail")))
-        time.sleep(2)  # Extra buffer for JS-rendered content
+        time.sleep(4)  # Extra buffer — description grid renders after initial load (argos_cluade.py)
 
         # ── Title ──────────────────────────────────────────────────────────────
         try:
@@ -340,51 +370,122 @@ def scrape_very_product(driver, url: str) -> Dict[str, Any]:
                 By.CSS_SELECTOR, "#product-detail > h1 > span[class*='Title']"
             )
             data["title"] = title_el.text.strip()
+            result["title"] = data["title"]
             print(f"  ✅ Title: {data['title']}")
         except Exception:
-            # Fallback: any h1 in product-detail
             try:
-                data["title"] = driver.find_element(
-                    By.CSS_SELECTOR, "#product-detail h1"
-                ).text.strip()
-            except:
-                data["title"] = ""
-            print(f"  ⚠️  Title fallback: {data['title']}")
+                title_el = driver.find_element(By.CSS_SELECTOR, "#product-detail h1")
+                data["title"] = title_el.text.strip()
+                result["title"] = data["title"]
+                print(f"  ✅ Title (fallback): {data['title']}")
+            except Exception:
+                try:
+                    # Fallback: any visible h1 on page (Very sometimes loads structure late)
+                    title_el = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "h1")))
+                    data["title"] = title_el.text.strip()
+                    result["title"] = data["title"]
+                    print(f"  ✅ Title (h1): {data['title']}")
+                except Exception:
+                    try:
+                        # Fallback: page title often has product name on Very
+                        page_title = driver.execute_script("return document.title || '';")
+                        if page_title and "very" not in page_title.lower() and len(page_title) > 3:
+                            # Strip common suffixes like " | Very.co.uk"
+                            data["title"] = page_title.split("|")[0].strip()
+                            result["title"] = data["title"]
+                            print(f"  ✅ Title (from page title): {data['title']}")
+                        else:
+                            data["title"] = ""
+                            result["title"] = ""
+                            print(f"  ⚠️  Title: not found")
+                    except Exception:
+                        data["title"] = ""
+                        result["title"] = ""
+                        print(f"  ⚠️  Title: not found")
 
         # ── Images from Splide carousel ────────────────────────────────────────
         image_urls = []
         try:
-            wait.until(EC.presence_of_element_located((By.ID, "splide01-list")))
-            slides = driver.find_elements(By.CSS_SELECTOR, "#splide01-list li img")
+            # Try to wait for carousel, but don't fail if it doesn't appear
+            try:
+                wait.until(EC.presence_of_element_located((By.ID, "splide01-list")))
+            except:
+                # Try alternative selectors
+                time.sleep(2)  # Give more time
+            
+            # Try multiple selectors for images
+            slides = []
+            try:
+                slides = driver.find_elements(By.CSS_SELECTOR, "#splide01-list li img")
+            except:
+                pass
+            
+            if not slides:
+                # Fallback: try other image containers
+                try:
+                    slides = driver.find_elements(By.CSS_SELECTOR, ".product-images img, [class*='image'] img")
+                except:
+                    pass
+            
             seen = set()
             for img in slides:
-                src = (
-                    img.get_attribute("src")
-                    or img.get_attribute("data-src")
-                    or img.get_attribute("data-splide-lazy")
-                )
-                if src and src not in seen:
-                    seen.add(src)
-                    image_urls.append(src)
-            print(f"  ✅ Images found: {len(image_urls)}")
-        except:
-            print("  ⚠️  Images: carousel not found")
+                try:
+                    src = (
+                        img.get_attribute("src")
+                        or img.get_attribute("data-src")
+                        or img.get_attribute("data-splide-lazy")
+                    )
+                    if src and src not in seen:
+                        seen.add(src)
+                        image_urls.append(src)
+                except:
+                    continue
+            
+            result["image_urls"] = image_urls
+            if image_urls:
+                print(f"  ✅ Images found: {len(image_urls)}")
+            else:
+                print("  ⚠️  Images: not found")
+        except Exception as img_error:
+            print(f"  ⚠️  Images: error - {img_error}")
+            result["image_urls"] = []
 
-        # ── Product Description (using logic from argos_cluade.py) ────────────────
+        # ── Product Description (logic from working.py) ─────────────────────────────
         description = None
         description_html = ""
 
-        # Strategy 1: Exact XPath confirmed from browser DevTools
+        def _is_recommendations_blob(html):
+            """Avoid keeping recommendations widget markup instead of description."""
+            if not html:
+                return False
+            return "recs2_pdp_1" in html or "data-stateid=\"recs2" in html
+
+        # Strategy 0: Very's product description body (correct content: Size & Fit, Details, etc.)
         try:
             desc_el = driver.find_element(
-                By.XPATH,
-                '//*[@id="product-page-container"]/div[1]/div[3]/div[1]/div/div/div'
+                By.CSS_SELECTOR,
+                '[data-testid="product_description_body"]'
             )
             description = desc_el.text.strip()
-            # Try to get HTML first
             description_html = desc_el.get_attribute("outerHTML") or driver.execute_script("return arguments[0].innerHTML;", desc_el)
-        except:
+            if _is_recommendations_blob(description_html):
+                description, description_html = None, ""
+        except Exception:
             pass
+
+        # Strategy 1: Exact XPath confirmed from browser DevTools (may grab recommendations if layout changed)
+        if not description:
+            try:
+                desc_el = driver.find_element(
+                    By.XPATH,
+                    '//*[@id="product-page-container"]/div[1]/div[3]/div[1]/div/div/div'
+                )
+                description = desc_el.text.strip()
+                description_html = desc_el.get_attribute("outerHTML") or driver.execute_script("return arguments[0].innerHTML;", desc_el)
+                if _is_recommendations_blob(description_html):
+                    description, description_html = None, ""
+            except Exception:
+                pass
 
         # Strategy 2: CSS equivalent with extra nested div (confirmed selector)
         if not description:
@@ -395,10 +496,12 @@ def scrape_very_product(driver, url: str) -> Dict[str, Any]:
                 )
                 description = desc_el.text.strip()
                 description_html = desc_el.get_attribute("outerHTML") or driver.execute_script("return arguments[0].innerHTML;", desc_el)
-            except:
+                if _is_recommendations_blob(description_html):
+                    description, description_html = None, ""
+            except Exception:
                 pass
 
-        # Strategy 3: Find by h2 "Product description" heading → grab sibling content
+        # Strategy 3: Find by h2 "Product description" heading → grab sibling content (parent section)
         if not description:
             try:
                 desc_heading = driver.find_element(
@@ -408,7 +511,7 @@ def scrape_very_product(driver, url: str) -> Dict[str, Any]:
                 section = desc_heading.find_element(By.XPATH, "./..")
                 description = section.text.strip()
                 description_html = section.get_attribute("outerHTML") or driver.execute_script("return arguments[0].innerHTML;", section)
-            except:
+            except Exception:
                 pass
 
         # Strategy 4: Fallback — grab all bullet points from product-detail
@@ -420,18 +523,17 @@ def scrape_very_product(driver, url: str) -> Dict[str, Any]:
                     description = "\n".join([b.text.strip() for b in bullets if b.text.strip()])
                     if description:
                         description_html = f"<div class=\"product-description-content-text\"><ul>{''.join([f'<li>{b.text.strip()}</li>' for b in bullets if b.text.strip()])}</ul></div>"
-            except:
+            except Exception:
                 pass
 
         # Convert text to HTML if we have text but no HTML
         if description and not description_html:
             description_html = f"<div class=\"product-description-content-text\"><p>{description.replace(chr(10), '</p><p>')}</p></div>"
         elif not description and description_html:
-            # If we have HTML but no text, extract text from HTML
             try:
                 if 'desc_el' in locals():
                     description = driver.execute_script("return arguments[0].textContent || arguments[0].innerText;", desc_el)
-            except:
+            except Exception:
                 pass
 
         if description or description_html:
@@ -439,19 +541,70 @@ def scrape_very_product(driver, url: str) -> Dict[str, Any]:
         else:
             print("  ⚠️  Description: not found")
 
-        return {
-            "title": data.get("title", ""),
-            "image_urls": image_urls,
-            "description_html": description_html or "",
-        }
+        result["description_html"] = description_html or ""
+        
+        return result
 
     except Exception as e:
-        print(f"  ❌ Error: {e}")
-        return {
-            "title": "",
-            "image_urls": [],
-            "description_html": "",
-        }
+        error_msg = str(e)
+        error_type = type(e).__name__
+        print(f"  ❌ Error ({error_type}): {error_msg}")
+        
+        # Check if this is a Chrome crash or driver issue
+        if "chrome" in error_msg.lower() or "chromedriver" in error_msg.lower() or "session" in error_msg.lower():
+            print("  ⚠️  Chrome driver may have crashed. Attempting recovery...")
+        
+        # Try to extract any data we might have gotten before the error
+        try:
+            # Check if driver is still responsive
+            if driver:
+                try:
+                    # Test if driver is still alive
+                    _ = driver.current_url
+                    current_url = driver.current_url
+                    if "very.co.uk" in current_url:
+                        # Try to get title if page loaded
+                        try:
+                            title_el = driver.find_element(By.CSS_SELECTOR, "#product-detail h1, h1")
+                            result["title"] = title_el.text.strip() if title_el else ""
+                            if result["title"]:
+                                print(f"  ✅ Recovered title: {result['title']}")
+                        except:
+                            pass
+                        
+                        # Try to get images if available
+                        try:
+                            slides = driver.find_elements(By.CSS_SELECTOR, "#splide01-list li img, img")
+                            temp_images = []
+                            for img in slides[:10]:  # Limit to avoid too many
+                                try:
+                                    src = img.get_attribute("src") or img.get_attribute("data-src")
+                                    if src and src not in temp_images:
+                                        temp_images.append(src)
+                                except:
+                                    continue
+                            if temp_images:
+                                result["image_urls"] = temp_images
+                                print(f"  ✅ Recovered {len(temp_images)} images")
+                        except:
+                            pass
+                except Exception as driver_check_error:
+                    # Driver is not responsive
+                    print(f"  ⚠️  Driver not responsive: {driver_check_error}")
+                    pass
+        except Exception as recovery_error:
+            print(f"  ⚠️  Recovery attempt failed: {recovery_error}")
+            pass
+        
+        # Return partial results if we have any, otherwise return empty
+        if not result.get("title") and not result.get("image_urls"):
+            result = {
+                "title": "",
+                "image_urls": [],
+                "description_html": "",
+            }
+        
+        return result
 
 
 # ─── CHEAPFURNITUREWAREHOUSE.CO.UK SCRAPER ────────────────────────────────────────
@@ -481,25 +634,58 @@ def scrape_cheapfurniturewarehouse_product(driver, url: str) -> Dict[str, Any]:
             result["title"] = ""
 
         # ── Description ────────────────────────────────────────────────────────
+        description_html = ""
         try:
             desc_el = driver.find_element(
                 By.XPATH,
                 '//*[@id="ProductInfo-template--25585833705806__main-product"]/div/div[3]'
             )
-            # Get HTML content
             description_html = desc_el.get_attribute("outerHTML") or driver.execute_script("return arguments[0].innerHTML;", desc_el)
-            if description_html:
-                result["description_html"] = description_html
-                print(f"  ✅ Description: {len(description_html)} chars")
-            else:
-                # Fallback to text
+            if not description_html:
                 desc_text = desc_el.text.strip()
                 if desc_text:
-                    result["description_html"] = f"<div class=\"product-description-content-text\"><p>{desc_text.replace(chr(10), '</p><p>')}</p></div>"
-                    print(f"  ✅ Description (text): {len(desc_text)} chars")
+                    description_html = f"<div class=\"product-description-content-text\"><p>{desc_text.replace(chr(10), '</p><p>')}</p></div>"
         except Exception as e:
-            print(f"  ⚠️  Description: not found ({e})")
+            pass
+
+        # ── Specifications table (ProductAccordion-specifications_tab_.../table) ──
+        try:
+            specs_accordion = driver.find_element(
+                By.XPATH,
+                '//*[contains(@id,"ProductAccordion-specifications_tab") and contains(@id,"template--25585833705806__main-product")]'
+            )
+            driver.execute_script("arguments[0].click();", specs_accordion)
+            time.sleep(1)
+        except Exception:
+            pass
+        try:
+            specs_table = driver.find_element(
+                By.XPATH,
+                '//*[contains(@id,"ProductAccordion-specifications_tab") and contains(@id,"template--25585833705806__main-product")]/table'
+            )
+            specs_html = specs_table.get_attribute("outerHTML")
+            if specs_html:
+                description_html = (description_html or "") + '<div class="product-specifications"><h3>Specifications</h3>' + specs_html + '</div>'
+                print(f"  ✅ Specifications table: added")
+        except Exception:
+            try:
+                specs_table = driver.find_element(
+                    By.CSS_SELECTOR,
+                    '[id*="ProductAccordion-specifications_tab"][id*="main-product"] table'
+                )
+                specs_html = specs_table.get_attribute("outerHTML")
+                if specs_html:
+                    description_html = (description_html or "") + '<div class="product-specifications"><h3>Specifications</h3>' + specs_html + '</div>'
+                    print(f"  ✅ Specifications table: added")
+            except Exception:
+                pass
+
+        if description_html:
+            result["description_html"] = description_html
+            print(f"  ✅ Description: {len(description_html)} chars")
+        else:
             result["description_html"] = ""
+            print(f"  ⚠️  Description: not found")
 
         # ── Images ────────────────────────────────────────────────────────────
         image_urls = []
@@ -577,11 +763,29 @@ def scrape_product(url: str, driver=None) -> Dict[str, Any]:
             try:
                 scraped = scrape_very_product(driver, url)
                 result.update(scraped)
+            except Exception as very_error:
+                print(f"  ❌ Fatal error scraping Very.co.uk: {very_error}")
+                result.update({
+                    "title": "",
+                    "image_urls": [],
+                    "description_html": "",
+                })
             finally:
-                driver.quit()
+                try:
+                    driver.quit()
+                except:
+                    pass
         else:
-            scraped = scrape_very_product(driver, url)
-            result.update(scraped)
+            try:
+                scraped = scrape_very_product(driver, url)
+                result.update(scraped)
+            except Exception as very_error:
+                print(f"  ❌ Fatal error scraping Very.co.uk: {very_error}")
+                result.update({
+                    "title": "",
+                    "image_urls": [],
+                    "description_html": "",
+                })
 
     elif is_cheapfurniturewarehouse(url):
         if driver is None:
@@ -626,10 +830,28 @@ def read_urls_from_csv(path: Path) -> List[str]:
 
 def load_template() -> Dict[str, Any]:
     """Load the product template JSON"""
-    if not TEMPLATE_PATH.exists():
-        raise FileNotFoundError(f"Template JSON not found at {TEMPLATE_PATH}")
-    with TEMPLATE_PATH.open(encoding="utf-8") as f:
-        return json.load(f)
+    # Try multiple possible locations
+    possible_paths = [
+        TEMPLATE_PATH,
+        BASE_DIR / "product-template.json",
+    ]
+    
+    # If running as executable, also check temp folder
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        possible_paths.insert(0, Path(sys._MEIPASS) / "product-template.json")
+    
+    for template_path in possible_paths:
+        if template_path.exists():
+            print(f"📄 Loading template from: {template_path}")
+            with template_path.open(encoding="utf-8") as f:
+                return json.load(f)
+    
+    # If none found, provide helpful error message
+    error_msg = f"Template JSON not found. Checked:\n"
+    for path in possible_paths:
+        error_msg += f"  - {path}\n"
+    error_msg += f"\nPlease ensure product-template.json is in the same folder as the executable."
+    raise FileNotFoundError(error_msg)
 
 
 def build_product_from_template(
@@ -662,6 +884,383 @@ def build_product_from_template(
     return result
 
 
+# ─── HTML GENERATION ──────────────────────────────────────────────────────────
+
+def load_json_file(json_file):
+    """Load product data from JSON file"""
+    try:
+        with open(json_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"❌ Error: File '{json_file}' not found!")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"❌ Error: Invalid JSON in '{json_file}': {e}")
+        return None
+
+
+def generate_images_html(images):
+    """Generate image gallery HTML"""
+    if len(images) == 0:
+        return "", ""
+
+    sentinel_html = f'<img src="{images[0]}" alt="" class="main-sentinel" />'
+    
+    images_html = ""
+    for i, img_url in enumerate(images, 1):
+        checked = ' checked' if i == 1 else ''
+        images_html += f"""
+                                <!-- IMAGE {i} -->
+                                <div class="image">
+                                    <input id="thumbnail-control-{i}" type="radio" name="thumbnails" class="thumbnails-control"{checked} />
+                                    <label for="thumbnail-control-{i}" id="thumbnail-{i}" class="thumbnail">
+                                        <img src="{img_url}" alt="Thumb {i}" />
+                                    </label>
+                                    <input id="image-control-{i}" type="checkbox" class="main-control">
+                                    <label for="image-control-{i}" id="image-{i}" class="main transition">
+                                        <img src="{img_url}" alt="Main Image {i}" />
+                                    </label>
+                                </div>
+"""
+    
+    return sentinel_html, images_html
+
+
+def generate_gallery_css(num_images):
+    """Generate dynamic CSS for image positioning"""
+    if num_images == 0:
+        return "", "", 200, 200
+
+    desktop_css = "            /* Desktop Positioning */\n"
+    desktop_step = 120
+    max_per_row_desktop = 5
+    
+    for i in range(num_images):
+        row = i // max_per_row_desktop
+        col = i % max_per_row_desktop
+        left_pos = col * desktop_step
+        bottom_pos = -150 - (row * 100)
+        desktop_css += f"            .image:nth-of-type({i+1}) .thumbnail {{ left: {left_pos}px; bottom: {bottom_pos}px; }}\n"
+
+    desktop_rows = (num_images - 1) // max_per_row_desktop
+    desktop_margin_bottom = 200 + (desktop_rows * 100)
+
+    mobile_css = "            /* Mobile Positioning */\n"
+    mobile_step = 90
+    max_per_row_mobile = 4
+    
+    for i in range(num_images):
+        row = i // max_per_row_mobile
+        col = i % max_per_row_mobile
+        left_pos = col * mobile_step
+        bottom_pos = -150 - (row * 90)
+        mobile_css += f"            .image:nth-of-type({i+1}) .thumbnail {{ left: {left_pos}px; bottom: {bottom_pos}px; }}\n"
+        
+    mobile_rows = (num_images - 1) // max_per_row_mobile
+    mobile_margin_bottom = 260 + (mobile_rows * 90)
+    
+    return desktop_css, desktop_margin_bottom, mobile_css, mobile_margin_bottom
+
+
+def generate_condition_html(condition):
+    """Generate condition box HTML"""
+    details_html = ""
+    for detail in condition['details']:
+        details_html += f"                                    <li>{detail}</li>\n"
+    return condition['title'], details_html
+
+
+def generate_description_html(desc):
+    """Return main description HTML only (scraped)."""
+    return desc.get('main_text', '')
+
+
+def generate_delivery_html(delivery):
+    """Generate delivery section HTML"""
+    items_html = ""
+    for item in delivery['items']:
+        label_html = f"<span class=\"delivery-label\">{item['label']}</span> " if item['label'] else ""
+        items_html += f"                                            <div class=\"delivery-item\">{label_html}{item['value']}</div>\n"
+    return items_html
+
+
+def generate_returns_html(returns):
+    """Generate returns section HTML"""
+    details_html = ""
+    for detail in returns['details']:
+        details_html += f"                                        <li>{detail}</li>\n"
+    return returns['title'], details_html
+
+
+def generate_html_from_data(data):
+    """Generate complete HTML from product data"""
+    sentinel_img, images_html = generate_images_html(data['images'])
+    condition_title, condition_details = generate_condition_html(data['condition'])
+    desc_html = generate_description_html(data['description'])
+    delivery_html = generate_delivery_html(data['delivery'])
+    returns_title, returns_details = generate_returns_html(data['returns'])
+    
+    desktop_css, desktop_margin_bottom, mobile_css, mobile_margin_bottom = generate_gallery_css(len(data['images']))
+    
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+<title>{data['page_title']}</title>
+
+    <style>
+        html, body {{ margin: 0; padding: 0; font-family: "Trebuchet MS", "Lucida Grande", sans-serif; background: #fff; color: #333; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }}
+        * {{ box-sizing: border-box; }}
+        img {{ max-width: 100%; height: auto; display: block; }}
+        a {{ color: #333; text-decoration: none; transition: all 0.2s ease; }}
+        a:hover {{ color: {data['brand_color']}; }}
+        p {{ margin: 0 0 15px; }}
+        ul {{ list-style: none; padding: 0; margin: 0; }}
+        h1, h2, h3 {{ font-weight: 700; color: {data['brand_color']}; margin-top: 0; margin-bottom: 15px; }}
+        .container {{ padding-right: 15px; padding-left: 15px; margin-right: auto; margin-left: auto; max-width: 1200px; }}
+        .row {{ margin-right: -15px; margin-left: -15px; display: flex; flex-wrap: wrap; }}
+        .col-xs-12, .col-md-8, .col-md-4, .col-lg-8, .col-lg-6 {{ position: relative; width: 100%; padding-right: 15px; padding-left: 15px; }}
+        .section {{ padding: 20px 0; }}
+        .clearfix::after {{ content: ""; display: table; clear: both; }}
+        @media (min-width: 768px) {{
+            .col-md-8 {{ flex: 0 0 66.66667%; max-width: 66.66667%; }}
+            .col-md-4 {{ flex: 0 0 33.33333%; max-width: 33.33333%; padding-right: 15px; }}
+            .hidden-md-down {{ display: block !important; }}
+            .hidden-lg-up {{ display: none !important; }}
+        }}
+        @media (max-width: 767px) {{
+            .hidden-md-down {{ display: none !important; }}
+            .col-md-4 {{ padding-right: 15px; }}
+        }}
+        #header {{ border-bottom: 1px solid #e0e0e0; padding-bottom: 15px; margin-bottom: 20px; }}
+        .logo-box {{ display: flex; align-items: center; justify-content: flex-start; padding-left: 20px; }}
+        .logo-box img {{ height: 60px; width: auto; }}
+        .title {{ font-size: 28px; line-height: 1.3; font-weight: 400; color: #333; margin-bottom: 25px; text-transform: uppercase; margin-top: 10px; padding-left: 15px; }}
+        .images {{ position: relative; margin-bottom: 200px; max-width: 450px; margin-left: auto; margin-right: auto; }}
+        .main-sentinel {{ width: 100%; visibility: hidden; }}
+        .image {{ position: absolute; top: 0; left: 0; width: 100%; height: 100%; }}
+        .thumbnails-control, .main-control {{ display: none; }}
+        .thumbnail {{ position: absolute; bottom: -150px; width: 80px; height: 80px; border-radius: 50%; background: #fff; cursor: pointer; border: 2px solid #eee; overflow: hidden; z-index: 5; display: flex; align-items: center; justify-content: center; }}
+        .thumbnail img {{ width: 100%; height: 100%; object-fit: contain; padding: 5px; border-radius: 50%; }}
+        .thumbnail:hover {{ border-color: {data['brand_color']}; }}
+        .thumbnails-control:checked + .thumbnail {{ border-color: {data['brand_color']}; opacity: 1; }}
+        .main {{ position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff; opacity: 0; z-index: 1; transition: opacity 0.3s; display: flex; align-items: center; justify-content: center; }}
+        .main img {{ max-width: 100%; max-height: 100%; object-fit: contain; }}
+        .thumbnails-control:checked ~ .main {{ opacity: 1; z-index: 2; }}
+        @media (min-width: 768px) {{
+            .images {{ max-width: 600px; margin-left: 0; margin-right: 0; margin-bottom: {desktop_margin_bottom}px; }}
+{desktop_css}
+        }}
+        @media (max-width: 500px) {{
+            .images {{ margin-bottom: {mobile_margin_bottom}px; }}
+{mobile_css}
+        }}
+        .condition {{ border: 2px solid #ddd; padding: 20px; margin-bottom: 25px; background: #fff; margin-top: 20px; }}
+        .condition h2 {{ font-size: 18px; margin-bottom: 15px; color: #333; font-weight: 600; }}
+        .condition ul li {{ font-size: 14px; margin-bottom: 10px; padding-left: 20px; position: relative; color: #555; }}
+        .condition ul li::before {{ content: "•"; position: absolute; left: 0; color: #333; font-weight: bold; }}
+        .condition ul li strong {{ color: #333; }}
+        .accordion-content ul {{ list-style: disc; padding-left: 20px; margin: 0 0 15px 0; }}
+        .accordion-content ul li {{ margin-bottom: 6px; padding-left: 4px; }}
+        .accordion-content h2, .accordion-content h3, .accordion-content strong {{ color: {data['brand_color']}; font-weight: 600; }}
+        .accordion-content .product-specifications {{ margin-top: 20px; margin-bottom: 20px; }}
+        .accordion-content .product-specifications h3 {{ margin-bottom: 12px; font-size: 16px; }}
+        .accordion-content .product-specifications table {{ width: 100%; border-collapse: collapse; font-size: 14px; color: #333; }}
+        .accordion-content .product-specifications table th {{ text-align: left; padding: 10px 12px; border: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #333; width: 35%; }}
+        .accordion-content .product-specifications table td {{ padding: 10px 12px; border: 1px solid #ddd; background: #fff; }}
+        .accordion-content .product-specifications table tr:nth-child(even) td {{ background: #fafafa; }}
+        .accordion-content .product-specifications table tr:hover td {{ background: #f8f8f8; }}
+        .buttons .btn {{ display: block; width: 100%; padding: 16px 0; text-align: center; border: 2px solid {data['brand_color']}; color: {data['brand_color']}; border-radius: 50px; font-weight: bold; margin-bottom: 15px; background: #fff; font-size: 16px; }}
+        .buttons .btn:hover {{ background: {data['brand_color']}; color: #fff; }}
+        .accordion-area {{ margin-top: 40px; max-width: 100%; margin-left: auto; margin-right: auto; }}
+        .accordion-box {{ background: #ffffff; border: 1px solid #d3d3d3; border-radius: 8px; margin-bottom: 30px; overflow: hidden; }}
+        .accordion-box summary {{ padding: 18px 25px; cursor: pointer; list-style: none; font-size: 16px; font-weight: 400; color: #333; background: #ffffff; display: flex; justify-content: space-between; align-items: center; }}
+        .accordion-box summary::-webkit-details-marker {{ display: none; }}
+        .accordion-box summary:hover {{ background-color: #fafafa; color: {data['brand_color']}; }}
+        .accordion-box summary .toggle-icon {{ width: 20px; height: 20px; transition: transform 0.3s ease; stroke: #333; }}
+        .accordion-box details[open] summary .toggle-icon {{ transform: rotate(180deg); stroke: {data['brand_color']}; }}
+        .accordion-box details[open] summary {{ border-bottom: 1px solid #eee; color: {data['brand_color']}; font-weight: bold; }}
+        .accordion-content {{ padding: 25px; font-size: 14px; color: #333; line-height: 1.6; }}
+        .delivery-section {{ display: flex; justify-content: space-between; align-items: flex-start; }}
+        .delivery-info {{ flex: 1; }}
+        .delivery-subtitle {{ color: {data['brand_color']}; font-weight: 600; font-size: 14px; margin-bottom: 15px; }}
+        .delivery-item {{ margin-bottom: 12px; font-size: 14px; color: #333; line-height: 1.5; }}
+        .delivery-label {{ font-weight: 600; }}
+        .delivery-icons {{ display: flex; gap: 15px; align-items: center; margin-left: 20px; }}
+        .delivery-icon {{ width: 70px; height: 70px; fill: #999; }}
+        @media (max-width: 600px) {{
+            .delivery-section {{ flex-direction: column; }}
+            .delivery-icons {{ margin-left: 0; margin-top: 20px; width: 100%; justify-content: flex-start; }}
+            .delivery-icon {{ width: 50px; height: 50px; }}
+        }}
+        #footer {{ background-color: #ececec; padding: 40px 20px; margin-top: 50px; }}
+        #footer h3 {{ font-size: 16px; font-weight: 600; color: #333; margin: 0 0 20px 0; }}
+        #footer a {{ color: #333; text-decoration: none; font-size: 14px; font-weight: 400; }}
+        #footer a:hover {{ color: {data['brand_color']}; text-decoration: underline; }}
+    </style>
+</head>
+<body>
+<div id="page">
+    <header id="header" class="section">
+        <div class="container">
+            <div class="row">
+                <div class="col-xs-12 col-lg-6">
+                    <a target="_blank" href="#" title="Cheap Furniture Warehouse" class="logo">
+                        <div class="logo-box">
+                            <img src="{data['logo_url']}" alt="Cheap Furniture Warehouse" />
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+    </header>
+    <div id="main">
+        <section class="container">
+            <div class="row">
+                <div class="col-xs-12">
+                    <div class="row">
+                        <div class="col-xs-12">
+                            <h1 class="title">{data['product_title']} </h1>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-8">
+                            <div class="images">
+                                {sentinel_img}
+{images_html}
+                            </div>
+                        </div>
+                        <div class="col-xs-12 col-md-4">
+                            <div class="condition">
+                                <h2>{condition_title}</h2>
+                                <ul>
+{condition_details}
+                                </ul>
+                            </div>
+                            <div class="buttons clearfix">
+                                <a class="btn" href="#" onclick="window.parent.postMessage({{action: 'CONTACT_SELLER'}}, '*'); return false;">Contact</a>
+                                <a target="_blank" class="btn" href="{data.get('shop_url', 'https://www.ebay.co.uk/str/cfurniturewarehousebradford')}">Visit our eBay shop</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-area">
+                        <div class="accordion-box">
+                            <details open>
+                                <summary>
+                                    <span style="font-size: 16px;">Description</span>
+                                    <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </summary>
+                                <div class="accordion-content">
+                                    {desc_html}
+                                </div>
+                            </details>
+                        </div>
+                        <div class="accordion-box">
+                            <details>
+                                <summary>
+                                    <span style="font-size: 16px;">Delivery</span>
+                                    <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </summary>
+                                <div class="accordion-content">
+                                    <div class="delivery-section">
+                                        <div class="delivery-info">
+                                            <div class="delivery-subtitle">Delivery Information</div>
+{delivery_html}
+                                        </div>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                        <div class="accordion-box">
+                            <details>
+                                <summary>
+                                    <span style="font-size: 16px;">Returns</span>
+                                    <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </summary>
+                                <div class="accordion-content">
+                                    <p>We offer <strong>{returns_title}</strong>.</p>
+                                    <ul>
+{returns_details}
+                                    </ul>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+</body>
+</html>"""
+    
+    return html
+
+
+def generate_html_files():
+    """Generate HTML files from all JSON files in products folder"""
+    print("\n" + "=" * 60)
+    print("🚀 Generating HTML Files")
+    print("=" * 60)
+    
+    if not OUTPUT_DIR.exists() or not OUTPUT_DIR.is_dir():
+        print(f"❌ Error: 'products' folder not found at: {OUTPUT_DIR}")
+        return False
+    
+    json_files = sorted(OUTPUT_DIR.glob("*.json"))
+    if not json_files:
+        print(f"❌ Error: No JSON files found in: {OUTPUT_DIR}")
+        return False
+    
+    print(f"📂 Found {len(json_files)} JSON file(s) in 'products' folder.\n")
+    
+    success_count = 0
+    fail_count = 0
+    
+    for json_file in json_files:
+        print(f"📂 Loading: {json_file.name}")
+        data = load_json_file(json_file)
+        if data is None:
+            fail_count += 1
+            continue
+        
+        try:
+            html = generate_html_from_data(data)
+        except Exception as e:
+            print(f"❌ Error during generation for '{json_file.name}': {e}")
+            fail_count += 1
+            continue
+        
+        output_filename = json_file.stem + "-generated.html"
+        OUTPUT_HTML_DIR.mkdir(parents=True, exist_ok=True)
+        output_path = OUTPUT_HTML_DIR / output_filename
+        
+        try:
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(html)
+            print(f"✅ Created: html/{output_filename}\n")
+            success_count += 1
+        except Exception as e:
+            print(f"❌ Error saving file '{output_filename}': {e}\n")
+            fail_count += 1
+    
+    print("=" * 60)
+    print(f"✅ Successfully generated: {success_count} HTML file(s) in 'html' folder")
+    if fail_count:
+        print(f"⚠️  Failed: {fail_count} file(s)")
+    print("=" * 60)
+    
+    return success_count > 0
+
+
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
 def main():
@@ -674,24 +1273,53 @@ def main():
         print("No URLs found in url.csv", file=sys.stderr)
         sys.exit(1)
 
+    # Load template first (needed to build product JSON files from scraped data)
+    # We check this early so we don't waste time scraping if template is missing
+    print("📄 Loading product template (required for building product JSON files)...")
     try:
         template = load_template()
+        print("✅ Template loaded successfully\n")
     except Exception as e:
-        print(f"Failed to load product-template.json: {e}", file=sys.stderr)
+        print(f"\n❌ Failed to load product-template.json")
+        print(f"Error: {e}")
+        print(f"\nDebugging info:")
+        print(f"  Current working directory: {Path.cwd()}")
+        print(f"  BASE_DIR: {BASE_DIR}")
+        print(f"  Looking for template in: {TEMPLATE_PATH}")
+        if getattr(sys, 'frozen', False):
+            print(f"  Executable location: {sys.executable}")
+            if hasattr(sys, '_MEIPASS'):
+                print(f"  Temp folder (_MEIPASS): {sys._MEIPASS}")
+        print(f"\n💡 Solution: Place product-template.json in the same folder as:")
+        if getattr(sys, 'frozen', False):
+            print(f"   → {Path(sys.executable).parent}")
+        else:
+            print(f"   → {BASE_DIR}")
         sys.exit(1)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    print("🚀 Starting Combined Scraper (Argos + Very.co.uk)...")
+    # Determine which sites are being scraped
+    has_very_urls = any(is_very(url) for url in urls)
+    has_argos_urls = any(is_argos(url) for url in urls)
+    has_cfw_urls = any(is_cheapfurniturewarehouse(url) for url in urls)
+    
+    sites = []
+    if has_argos_urls:
+        sites.append("Argos")
+    if has_very_urls:
+        sites.append("Very.co.uk")
+    if has_cfw_urls:
+        sites.append("CheapFurnitureWarehouse")
+    
+    sites_str = " + ".join(sites) if sites else "Multiple Sites"
+    print(f"🚀 Starting Combined Scraper ({sites_str})...")
     print(f"   URLs to scrape: {len(urls)}\n")
 
     results: List[Dict[str, Any]] = []
     
     # Use a single driver for all sites that need Selenium (more efficient)
     driver = None
-    has_very_urls = any(is_very(url) for url in urls)
-    has_argos_urls = any(is_argos(url) for url in urls)
-    has_cfw_urls = any(is_cheapfurniturewarehouse(url) for url in urls)
 
     try:
         # Initialize driver if we have URLs that need Selenium
@@ -731,26 +1359,20 @@ def main():
             driver.quit()
             print("\n🛑 Browser closed.")
 
-    # Save CSV summary for quick debugging (same format as argos_scraper.py)
-    out_path = BASE_DIR / "argos_products.csv"
-    with out_path.open("w", newline="", encoding="utf-8") as f:
-        fieldnames = ["url", "title", "image_urls", "description_html"]
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        for r in results:
-            writer.writerow(
-                {
-                    "url": r.get("url", ""),
-                    "title": r.get("title", ""),
-                    "image_urls": "|".join(r.get("image_urls", [])),
-                    "description_html": r.get("description_html", ""),
-                }
-            )
-
     print(
-        f"\nDone. Wrote {len(results)} product JSON file(s) to {OUTPUT_DIR} "
-        f"and CSV summary to {out_path}"
+        f"\n✅ Scraping completed! Wrote {len(results)} product JSON file(s) to {OUTPUT_DIR}"
     )
+    
+    # Step 2: Generate HTML files from the scraped JSON files
+    if len(results) > 0:
+        print("\n")
+        html_success = generate_html_files()
+        if html_success:
+            print("\n✅ All tasks completed successfully!")
+        else:
+            print("\n⚠️  Scraping completed but HTML generation had issues.")
+    else:
+        print("\n⚠️  No products scraped, skipping HTML generation.")
 
 
 if __name__ == "__main__":
