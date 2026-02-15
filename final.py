@@ -6,12 +6,24 @@ Reads URLs from url.csv and saves individual product JSON files like argos_scrap
 import copy
 import csv
 import json
+import re
 import sys
 import time
 import random
 from pathlib import Path
 from typing import List, Dict, Any
 from urllib.parse import urlparse
+
+
+def sanitize_filename(name: str, fallback: str = "product") -> str:
+    """Create a safe filename from a product title."""
+    if not name or not name.strip():
+        return fallback
+    # Replace invalid filename chars: \ / : * ? " < > |
+    safe = re.sub(r'[\\/:*?"<>|]', '', name.strip())
+    safe = re.sub(r'\s+', ' ', safe).strip()
+    safe = safe[:80] if len(safe) > 80 else safe
+    return safe if safe else fallback
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -50,8 +62,22 @@ OUTPUT_HTML_DIR = BASE_DIR / "html"
 
 # ─── DRIVER SETUP ─────────────────────────────────────────────────────────────
 
-def get_driver(headless=True):
-    """Create and configure Chrome WebDriver"""
+def get_driver(headless=True, stealth_for_very=False):
+    """Create and configure Chrome WebDriver. Use stealth_for_very=True when scraping Very.co.uk to reduce bot detection."""
+    # Optional: undetected-chromedriver evades many bot checks (pip install undetected-chromedriver)
+    if stealth_for_very:
+        try:
+            import undetected_chromedriver as uc
+            opts = uc.ChromeOptions()
+            if headless:
+                opts.add_argument("--headless=new")
+            driver = uc.Chrome(options=opts)
+            return driver
+        except ImportError:
+            pass  # Fall back to standard driver
+        except Exception as e:
+            print(f"  ⚠️  undetected-chromedriver failed ({e}), using standard Chrome")
+
     options = Options()
     if headless:
         options.add_argument("--headless=new")
@@ -62,8 +88,9 @@ def get_driver(headless=True):
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_argument(
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
     )
+    options.add_argument("--lang=en-GB,en")
     # Additional stability options
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-software-rasterizer")
@@ -359,6 +386,14 @@ def scrape_very_product(driver, url: str) -> Dict[str, Any]:
 
     try:
         driver.get(url)
+        time.sleep(2)  # Allow initial page load
+
+        # Early detection: Very.co.uk often blocks bots with "Access Denied"
+        page_title = (driver.title or "").strip()
+        if "access denied" in page_title.lower():
+            print(f"  ❌ Access Denied: Very.co.uk has blocked this request (bot detection)")
+            print(f"     Tip: Try non-headless mode, add delays, or use a different network/proxy")
+            return result
 
         # Wait for the main product container (same as argos_cluade.py)
         wait.until(EC.presence_of_element_located((By.ID, "product-detail")))
@@ -1248,6 +1283,12 @@ def generate_html_files():
                 f.write(html)
             print(f"✅ Created: html/{output_filename}\n")
             success_count += 1
+            # Remove JSON file after successful conversion
+            try:
+                json_file.unlink()
+                print(f"   🗑️  Removed: {json_file.name}\n")
+            except Exception as del_err:
+                print(f"   ⚠️  Could not remove {json_file.name}: {del_err}\n")
         except Exception as e:
             print(f"❌ Error saving file '{output_filename}': {e}\n")
             fail_count += 1
@@ -1323,8 +1364,9 @@ def main():
 
     try:
         # Initialize driver if we have URLs that need Selenium
+        # Use stealth mode for Very.co.uk to reduce bot detection (Access Denied)
         if has_argos_urls or has_very_urls or has_cfw_urls:
-            driver = get_driver(headless=True)
+            driver = get_driver(headless=True, stealth_for_very=has_very_urls)
 
         # Process all URLs in order
         for idx, url in enumerate(urls, start=1):
@@ -1337,14 +1379,16 @@ def main():
                 results.append(result)
 
                 product_json = build_product_from_template(template, result)
-                out_file = OUTPUT_DIR / f"product_{idx}.json"
+                title = result.get("title") or product_json.get("product_title") or ""
+                safe_name = sanitize_filename(title, f"product_{idx}")
+                out_file = OUTPUT_DIR / f"{safe_name}.json"
                 with out_file.open("w", encoding="utf-8") as f:
                     json.dump(product_json, f, ensure_ascii=False, indent=4)
                 print(f"  -> wrote {out_file.name}")
                 
-                # Polite delay between requests
+                # Polite delay between requests (Very.co.uk is strict on bots)
                 if is_very(url):
-                    time.sleep(2)
+                    time.sleep(random.uniform(4, 7))
                 elif is_argos(url):
                     time.sleep(random.uniform(2, 4))  # Longer delay for Argos due to slider navigation
                 elif is_cheapfurniturewarehouse(url):
