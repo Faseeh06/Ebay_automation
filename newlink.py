@@ -20,14 +20,14 @@ time.sleep(2)  # wait a bit for page to load JS
 
 try:
     title = driver.find_element(
-        By.XPATH, '//*[@id="ProductInfo-template--25585833705806__main-product"]/div/div[1]/div/h1'
+        By.XPATH, '//*[starts-with(@id,"ProductInfo-template--") and contains(@id,"__main-product")]/div/div[1]/div/h1'
     ).text
 except:
     title = None
 
 try:
     second_text = driver.find_element(
-        By.XPATH, '//*[@id="ProductInfo-template--25585833705806__main-product"]/div/div[3]'
+        By.XPATH, '//*[starts-with(@id,"ProductInfo-template--") and contains(@id,"__main-product")]/div/div[3]'
     ).text
 except:
     second_text = None

@@ -21,14 +21,14 @@ time.sleep(3)  # let JS load
 
 try:
     title = driver.find_element(
-        By.XPATH, '//*[@id="ProductInfo-template--25585833705806__main-product"]/div/div[1]/div/h1'
+        By.XPATH, '//*[starts-with(@id,"ProductInfo-template--") and contains(@id,"__main-product")]/div/div[1]/div/h1'
     ).text
 except Exception as e:
     title = None
 
 try:
     second_text = driver.find_element(
-        By.XPATH, '//*[@id="ProductInfo-template--25585833705806__main-product"]/div/div[3]'
+        By.XPATH, '//*[starts-with(@id,"ProductInfo-template--") and contains(@id,"__main-product")]/div/div[3]'
     ).text
 except Exception as e:
     second_text = None
@@ -43,7 +43,7 @@ print("Info:", second_text)
 imgs = []
 thumbs = driver.find_elements(
     By.XPATH,
-    '//*[@id="Media-Thumbnails-template--25585833705806__main-product-56240683090254"]//img'
+    '//*[contains(@id,"Media-Thumbnails-template--")]//img'
 )
 
 for img in thumbs:
@@ -54,7 +54,7 @@ for img in thumbs:
 # Also try main featured image if exists
 try:
     main_img = driver.find_element(
-        By.CSS_SELECTOR, "#Slide-template--25585833705806__main-product-0 img"
+        By.CSS_SELECTOR, '[id^="Slide-template--"] img'
     ).get_attribute("src")
     if main_img not in imgs:
         imgs.append(main_img)
