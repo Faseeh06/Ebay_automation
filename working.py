@@ -472,7 +472,7 @@ def scrape_cheapfurniturewarehouse_product(driver, url: str) -> Dict[str, Any]:
         try:
             title_el = driver.find_element(
                 By.XPATH,
-                '//*[@id="ProductInfo-template--25585833705806__main-product"]/div/div[1]/div/h1'
+                '//*[starts-with(@id,"ProductInfo-template--") and contains(@id,"__main-product")]/div/div[1]/div/h1'
             )
             result["title"] = title_el.text.strip()
             print(f"  ✅ Title: {result['title']}")
@@ -485,7 +485,7 @@ def scrape_cheapfurniturewarehouse_product(driver, url: str) -> Dict[str, Any]:
         try:
             desc_el = driver.find_element(
                 By.XPATH,
-                '//*[@id="ProductInfo-template--25585833705806__main-product"]/div/div[3]'
+                '//*[starts-with(@id,"ProductInfo-template--") and contains(@id,"__main-product")]/div/div[3]'
             )
             # Get HTML content
             description_html = desc_el.get_attribute("outerHTML") or driver.execute_script("return arguments[0].innerHTML;", desc_el)
@@ -502,7 +502,7 @@ def scrape_cheapfurniturewarehouse_product(driver, url: str) -> Dict[str, Any]:
         try:
             specs_accordion = driver.find_element(
                 By.XPATH,
-                '//*[contains(@id,"ProductAccordion-specifications_tab") and contains(@id,"template--25585833705806__main-product")]'
+                '//*[contains(@id,"ProductAccordion-specifications_tab") and contains(@id,"__main-product")]'
             )
             driver.execute_script("arguments[0].click();", specs_accordion)
             time.sleep(1)
@@ -511,7 +511,7 @@ def scrape_cheapfurniturewarehouse_product(driver, url: str) -> Dict[str, Any]:
         try:
             specs_table = driver.find_element(
                 By.XPATH,
-                '//*[contains(@id,"ProductAccordion-specifications_tab") and contains(@id,"template--25585833705806__main-product")]/table'
+                '//*[contains(@id,"ProductAccordion-specifications_tab") and contains(@id,"__main-product")]/table'
             )
             specs_html = specs_table.get_attribute("outerHTML")
             if specs_html:
